@@ -1,7 +1,7 @@
 go-webvtt
 =======
 
-[![Test Status](https://github.com/Songmu/go-webvtt/workflows/test/badge.svg?branch=main)][actions]
+[![Test Status](https://github.com/Songmu/go-webvtt/actions/workflows/test.yaml/badge.svg?branch=main)][actions]
 [![Coverage Status](https://codecov.io/gh/Songmu/go-webvtt/branch/main/graph/badge.svg)][codecov]
 [![MIT License](https://img.shields.io/github/license/Songmu/go-webvtt)][license]
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/Songmu/go-webvtt)][PkgGoDev]
