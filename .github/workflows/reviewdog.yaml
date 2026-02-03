@@ -14,11 +14,14 @@ jobs:
     name: staticcheck
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         persist-credentials: false
-    - uses: reviewdog/action-staticcheck@v1
+    - uses: reviewdog/action-staticcheck@50f9bfcf3738839ddc95deac241b904d77469096 # v1.28.0
       with:
         reporter: github-pr-review
         fail_on_error: true
@@ -26,12 +29,15 @@ jobs:
     name: misspell
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       with:
         persist-credentials: false
     - name: misspell
-      uses: reviewdog/action-misspell@v1
+      uses: reviewdog/action-misspell@d6429416b12b09b4e2768307d53bef58d172e962 # v1.27.0
       with:
         reporter: github-pr-review
         level: warning
@@ -39,10 +45,13 @@ jobs:
   actionlint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
-      - uses: reviewdog/action-actionlint@v1
+      - uses: reviewdog/action-actionlint@e58ee9d111489c31395fbe4857b0be6e7635dbda # v1.70.0
         with:
           reporter: github-pr-review
