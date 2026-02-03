@@ -1,0 +1,156 @@
+{
+  "Cues": [
+    {
+      "ID": "cue-1",
+      "StartTime": 1000000000,
+      "EndTime": 4000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "This is \u003ci\u003eitalic\u003c/i\u003e text."
+        }
+      ]
+    },
+    {
+      "ID": "cue-2",
+      "StartTime": 5000000000,
+      "EndTime": 8000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "This is \u003cb\u003ebold\u003c/b\u003e text."
+        }
+      ]
+    },
+    {
+      "ID": "cue-3",
+      "StartTime": 9000000000,
+      "EndTime": 12000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "This is \u003cu\u003eunderlined\u003c/u\u003e text."
+        }
+      ]
+    },
+    {
+      "ID": "cue-4",
+      "StartTime": 13000000000,
+      "EndTime": 16000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "\u003ci\u003eItalic\u003c/i\u003e and \u003cb\u003ebold\u003c/b\u003e together."
+        }
+      ]
+    },
+    {
+      "ID": "cue-5",
+      "StartTime": 17000000000,
+      "EndTime": 20000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "\u003cb\u003e\u003ci\u003eNested bold italic\u003c/i\u003e\u003c/b\u003e text."
+        }
+      ]
+    },
+    {
+      "ID": "cue-6",
+      "StartTime": 21000000000,
+      "EndTime": 24000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "Speaker A",
+          "Text": "Hello \u003ci\u003eworld\u003c/i\u003e!"
+        }
+      ]
+    },
+    {
+      "ID": "cue-7",
+      "StartTime": 25000000000,
+      "EndTime": 28000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "Text with \u003cc.classname\u003eclass\u003c/c\u003e and \u003clang en\u003elanguage\u003c/lang\u003e tags."
+        }
+      ]
+    },
+    {
+      "ID": "cue-8",
+      "StartTime": 29000000000,
+      "EndTime": 32000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "Ruby text: \u003cruby\u003e漢字\u003crt\u003eかんじ\u003c/rt\u003e\u003c/ruby\u003e"
+        }
+      ]
+    }
+  ]
+}

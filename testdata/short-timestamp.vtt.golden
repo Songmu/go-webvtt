@@ -1,0 +1,80 @@
+{
+  "Cues": [
+    {
+      "ID": "cue-1",
+      "StartTime": 1000000000,
+      "EndTime": 4500000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "Short format without hours."
+        }
+      ]
+    },
+    {
+      "ID": "cue-2",
+      "StartTime": 10200000000,
+      "EndTime": 15800000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "Another short timestamp."
+        }
+      ]
+    },
+    {
+      "ID": "cue-3",
+      "StartTime": 90000000000,
+      "EndTime": 95000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "One minute thirty seconds."
+        }
+      ]
+    },
+    {
+      "ID": "cue-4",
+      "StartTime": 3599999000000,
+      "EndTime": 3600000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "Edge case near hour boundary."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+[
+  {
+    "ID": "region1",
+    "Settings": {
+      "lines": "3",
+      "regionanchor": "0%,100%",
+      "scroll": "up",
+      "viewportanchor": "10%,90%",
+      "width": "50%"
+    }
+  },
+  {
+    "Text": "::cue {\n  background-color: rgba(0, 0, 0, 0.8);\n  color: white;\n}\n::cue(b) {\n  color: yellow;\n}"
+  },
+  {
+    "ID": "cue-1",
+    "StartTime": 1000000000,
+    "EndTime": 4000000000,
+    "Settings": {
+      "Vertical": "",
+      "Line": "",
+      "Position": "",
+      "Size": "",
+      "Align": "",
+      "Region": "region1"
+    },
+    "Voices": [
+      {
+        "Speaker": "",
+        "Text": "Text in the defined region."
+      }
+    ]
+  },
+  {
+    "ID": "cue-2",
+    "StartTime": 5000000000,
+    "EndTime": 8000000000,
+    "Settings": {
+      "Vertical": "",
+      "Line": "",
+      "Position": "",
+      "Size": "",
+      "Align": "",
+      "Region": ""
+    },
+    "Voices": [
+      {
+        "Speaker": "",
+        "Text": "\u003cb\u003eBold yellow text\u003c/b\u003e and normal text."
+      }
+    ]
+  }
+]

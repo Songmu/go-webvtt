@@ -1,0 +1,115 @@
+{
+  "Cues": [
+    {
+      "ID": "cue-1",
+      "StartTime": 1000000000,
+      "EndTime": 3000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "Speaker A",
+          "Text": "End tag omitted"
+        }
+      ]
+    },
+    {
+      "ID": "cue-2",
+      "StartTime": 4000000000,
+      "EndTime": 6000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "Speaker B",
+          "Text": "Also no end tag here"
+        }
+      ]
+    },
+    {
+      "ID": "cue-3",
+      "StartTime": 7000000000,
+      "EndTime": 10000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "Roger",
+          "Text": "Hello!"
+        },
+        {
+          "Speaker": "Jane",
+          "Text": "Hi, there!"
+        }
+      ]
+    },
+    {
+      "ID": "cue-4",
+      "StartTime": 11000000000,
+      "EndTime": 15000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "Alice",
+          "Text": "Yes."
+        },
+        {
+          "Speaker": "Bob",
+          "Text": "No."
+        },
+        {
+          "Speaker": "Charlie",
+          "Text": "Maybe."
+        }
+      ]
+    },
+    {
+      "ID": "cue-5",
+      "StartTime": 16000000000,
+      "EndTime": 20000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "Speaker A",
+          "Text": "First line"
+        },
+        {
+          "Speaker": "Speaker B",
+          "Text": "Second line without end tags"
+        }
+      ]
+    }
+  ]
+}

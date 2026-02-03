@@ -1,0 +1,99 @@
+{
+  "Cues": [
+    {
+      "ID": "8b7f3a6e-9d42-4f3a-a1c8-6f2b1d9e4c21/14-0",
+      "StartTime": 3142000000,
+      "EndTime": 3901000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "Speaker A",
+          "Text": "First time here."
+        }
+      ]
+    },
+    {
+      "ID": "8b7f3a6e-9d42-4f3a-a1c8-6f2b1d9e4c21/15-0",
+      "StartTime": 6341000000,
+      "EndTime": 9021000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "Speaker B",
+          "Text": "Hello, good morning everyone."
+        }
+      ]
+    },
+    {
+      "ID": "8b7f3a6e-9d42-4f3a-a1c8-6f2b1d9e4c21/18-0",
+      "StartTime": 8541000000,
+      "EndTime": 12583000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "Speaker C",
+          "Text": "Welcome. Good morning. Good morning."
+        }
+      ]
+    },
+    {
+      "ID": "8b7f3a6e-9d42-4f3a-a1c8-6f2b1d9e4c21/16-0",
+      "StartTime": 10141000000,
+      "EndTime": 11262000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "Speaker D",
+          "Text": "Hello. Hi all."
+        }
+      ]
+    },
+    {
+      "ID": "8b7f3a6e-9d42-4f3a-a1c8-6f2b1d9e4c21/23-0",
+      "StartTime": 10542000000,
+      "EndTime": 15231000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "Speaker B",
+          "Text": "Welcome. Hey, Speaker C, Speaker D,\na few more people are coming. One moment,"
+        }
+      ]
+    }
+  ]
+}

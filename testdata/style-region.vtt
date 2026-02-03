@@ -1,0 +1,26 @@
+WEBVTT
+
+REGION
+id:region1
+width:50%
+lines:3
+regionanchor:0%,100%
+viewportanchor:10%,90%
+scroll:up
+
+STYLE
+::cue {
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+}
+::cue(b) {
+  color: yellow;
+}
+
+cue-1
+00:00:01.000 --> 00:00:04.000 region:region1
+Text in the defined region.
+
+cue-2
+00:00:05.000 --> 00:00:08.000
+<b>Bold yellow text</b> and normal text.

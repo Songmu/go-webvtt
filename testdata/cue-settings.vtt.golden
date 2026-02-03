@@ -1,0 +1,118 @@
+{
+  "Cues": [
+    {
+      "ID": "cue-1",
+      "StartTime": 1000000000,
+      "EndTime": 4000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "10%",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "Text positioned at 10% from the left."
+        }
+      ]
+    },
+    {
+      "ID": "cue-2",
+      "StartTime": 5000000000,
+      "EndTime": 8000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "start",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "Left-aligned text."
+        }
+      ]
+    },
+    {
+      "ID": "cue-3",
+      "StartTime": 9000000000,
+      "EndTime": 12000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "0",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "Text at the top of the video."
+        }
+      ]
+    },
+    {
+      "ID": "cue-4",
+      "StartTime": 13000000000,
+      "EndTime": 16000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "",
+        "Position": "50%",
+        "Size": "50%",
+        "Align": "center",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "Centered text with 50% width."
+        }
+      ]
+    },
+    {
+      "ID": "cue-5",
+      "StartTime": 17000000000,
+      "EndTime": 20000000000,
+      "Settings": {
+        "Vertical": "rl",
+        "Line": "",
+        "Position": "",
+        "Size": "",
+        "Align": "",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "Vertical text, right to left."
+        }
+      ]
+    },
+    {
+      "ID": "cue-6",
+      "StartTime": 21000000000,
+      "EndTime": 24000000000,
+      "Settings": {
+        "Vertical": "",
+        "Line": "80%",
+        "Position": "80%",
+        "Size": "20%",
+        "Align": "end",
+        "Region": ""
+      },
+      "Voices": [
+        {
+          "Speaker": "",
+          "Text": "Multiple settings combined."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+WEBVTT
+
+NOTE
+This is a single-line comment that should be skipped.
+
+cue-1
+00:00:01.000 --> 00:00:04.000
+First actual cue.
+
+NOTE This is an inline comment.
+
+cue-2
+00:00:05.000 --> 00:00:08.000
+Second cue after inline note.
+
+NOTE
+This is a multi-line comment.
+It spans multiple lines.
+All of this should be skipped.
+
+cue-3
+00:00:09.000 --> 00:00:12.000
+Third cue after multi-line note.

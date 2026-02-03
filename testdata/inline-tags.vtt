@@ -1,0 +1,33 @@
+WEBVTT
+
+cue-1
+00:00:01.000 --> 00:00:04.000
+This is <i>italic</i> text.
+
+cue-2
+00:00:05.000 --> 00:00:08.000
+This is <b>bold</b> text.
+
+cue-3
+00:00:09.000 --> 00:00:12.000
+This is <u>underlined</u> text.
+
+cue-4
+00:00:13.000 --> 00:00:16.000
+<i>Italic</i> and <b>bold</b> together.
+
+cue-5
+00:00:17.000 --> 00:00:20.000
+<b><i>Nested bold italic</i></b> text.
+
+cue-6
+00:00:21.000 --> 00:00:24.000
+<v Speaker A>Hello <i>world</i>!</v>
+
+cue-7
+00:00:25.000 --> 00:00:28.000
+Text with <c.classname>class</c> and <lang en>language</lang> tags.
+
+cue-8
+00:00:29.000 --> 00:00:32.000
+Ruby text: <ruby>漢字<rt>かんじ</rt></ruby>

@@ -1,0 +1,17 @@
+WEBVTT
+
+cue-1
+00:01.000 --> 00:04.500
+Short format without hours.
+
+cue-2
+00:10.200 --> 00:15.800
+Another short timestamp.
+
+cue-3
+01:30.000 --> 01:35.000
+One minute thirty seconds.
+
+cue-4
+59:59.999 --> 60:00.000
+Edge case near hour boundary.
