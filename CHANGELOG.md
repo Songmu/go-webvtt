@@ -1,5 +1,18 @@
 # Changelog
 
+## [v0.0.3](https://github.com/Songmu/go-webvtt/compare/v0.0.2...v0.0.3) - 2026-11-07
+
+- Refactor document tests to use testdata fixtures by @Songmu in https://github.com/Songmu/go-webvtt/pull/18
+- Update GitHub Actions and lock workflow dependencies by @Songmu in https://github.com/Songmu/go-webvtt/pull/20
+- Remove unused version file by @Songmu in https://github.com/Songmu/go-webvtt/pull/21
+- Separate cue text scanning from tag state updates by @Songmu in https://github.com/Songmu/go-webvtt/pull/24
+- Separate document block parsing and remove repeated timestamp parsing by @Songmu in https://github.com/Songmu/go-webvtt/pull/25
+- Separate streaming parser and document patch responsibilities by @Songmu in https://github.com/Songmu/go-webvtt/pull/23
+- Fix region snapshot isolation and strengthen parser regressions by @Songmu in https://github.com/Songmu/go-webvtt/pull/22
+- refactor: isolate patched text node rendering by @Songmu in https://github.com/Songmu/go-webvtt/pull/28
+- refactor: simplify voice text boundary handling by @Songmu in https://github.com/Songmu/go-webvtt/pull/26
+- refactor: separate cue settings from timestamp validation by @Songmu in https://github.com/Songmu/go-webvtt/pull/27
+
 ## [v0.0.2](https://github.com/Songmu/go-webvtt/compare/v0.0.1...v0.0.2) - 2026-11-07
 - Bump codecov/codecov-action from 5.5.2 to 6.0.0 by @dependabot[bot] in https://github.com/Songmu/go-webvtt/pull/9
 - Add lossless document parsing and safe text patching by @Songmu in https://github.com/Songmu/go-webvtt/pull/16
