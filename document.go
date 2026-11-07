@@ -385,21 +385,7 @@ func (d *Document) CueText(patches []Patch) ([]string, error) {
 	}
 	var fragments []fragment
 	for _, node := range d.nodes {
-		var edits []Patch
-		for _, p := range patches {
-			if p.Start >= node.Start && p.End <= node.End {
-				edits = append(edits, p)
-			}
-		}
-		sort.SliceStable(edits, func(i, j int) bool { return edits[i].Start < edits[j].Start })
-		at := node.Start
-		value := ""
-		for _, p := range edits {
-			value += string(d.raw[at:p.Start]) + p.Replacement
-			at = p.End
-		}
-		value += string(d.raw[at:node.End])
-		fragments = append(fragments, fragment{node.Start, node.End, node.Cue, value})
+		fragments = append(fragments, fragment{node.Start, node.End, node.Cue, d.patchedNodeText(node, patches)})
 	}
 	for _, entity := range d.entities {
 		fragments = append(fragments, fragment{entity.Start, entity.End, entity.Cue,
@@ -415,6 +401,25 @@ func (d *Document) CueText(patches []Patch) ([]string, error) {
 		text[f.cue] += f.text
 	}
 	return text, nil
+}
+
+func (d *Document) patchedNodeText(node TextNode, patches []Patch) string {
+	var edits []Patch
+	for _, p := range patches {
+		if p.Start >= node.Start && p.End <= node.End {
+			edits = append(edits, p)
+		}
+	}
+	sort.SliceStable(edits, func(i, j int) bool { return edits[i].Start < edits[j].Start })
+	var text strings.Builder
+	at := node.Start
+	for _, p := range edits {
+		text.Write(d.raw[at:p.Start])
+		text.WriteString(p.Replacement)
+		at = p.End
+	}
+	text.Write(d.raw[at:node.End])
+	return text.String()
 }
 
 func decodeCharacterReference(s string) string {
