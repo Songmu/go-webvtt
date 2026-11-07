@@ -187,7 +187,8 @@ func TestParseReaderErrors(t *testing.T) {
 		{"header", "", 0, failure.Error()},
 		{"after-block", "WEBVTT\n\n00:01.000 --> 00:02.000\ntext\n\n", 1, failure.Error()},
 		{"after-last-block", "WEBVTT\n\n00:01.000 --> 00:02.000\ntext", 1, failure.Error()},
-		{"last-block-error", "WEBVTT\n\nbroken", 0, "missing timestamp line"},
+		// Characterize legacy behavior: a final parse error takes precedence over a reader error.
+		{"legacy-final-parse-error-priority", "WEBVTT\n\nbroken", 0, "missing timestamp line"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			reader := io.MultiReader(strings.NewReader(tc.input), &failingReader{err: failure})
