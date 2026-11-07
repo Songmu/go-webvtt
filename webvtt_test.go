@@ -119,6 +119,22 @@ func TestParseRegionSettings(t *testing.T) {
 	}
 }
 
+func TestParseCueSettings(t *testing.T) {
+	input := "WEBVTT\n\n00:01.000 --> 00:02.000 " +
+		"vertical:rl line:10% position:20% size:30% align:start region:first " +
+		"unknown:value ignored :ignored align: region:last\ntext\n"
+	vtt, err := ParseAll(strings.NewReader(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := CueSettings{
+		Vertical: "rl", Line: "10%", Position: "20%", Size: "30%", Region: "last",
+	}
+	if len(vtt.Cues) != 1 || vtt.Cues[0].Settings != want {
+		t.Fatalf("cue settings: %+v, want %+v", vtt.Cues, want)
+	}
+}
+
 func TestParseAll_Invalid(t *testing.T) {
 	// Invalid VTT files: testdata/invalid-*.vtt
 	invalidFiles := collectVTTFiles(t, "invalid-*.vtt")

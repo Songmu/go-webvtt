@@ -310,8 +310,13 @@ func parseTimestampLine(line string, allowExtendedMinutes bool) (start, end time
 		return 0, 0, settings, errors.New("timestamp minutes and seconds must be below 60")
 	}
 
-	// Parse settings
-	for _, s := range restParts[1:] {
+	settings = parseCueSettings(restParts[1:])
+	return start, end, settings, nil
+}
+
+func parseCueSettings(parts []string) CueSettings {
+	var settings CueSettings
+	for _, s := range parts {
 		if idx := strings.Index(s, ":"); idx > 0 {
 			key := s[:idx]
 			value := s[idx+1:]
@@ -332,7 +337,7 @@ func parseTimestampLine(line string, allowExtendedMinutes bool) (start, end time
 		}
 	}
 
-	return start, end, settings, nil
+	return settings
 }
 
 func hasExtendedMinutes(timestamp string, value time.Duration) bool {
