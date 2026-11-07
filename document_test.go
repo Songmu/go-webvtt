@@ -77,8 +77,12 @@ func TestDocumentRejectsMalformed(t *testing.T) {
 			if _, err := ParseDocument(raw); err == nil {
 				t.Fatal("expected lossless error")
 			}
-			// The legacy iterator intentionally retains extended MM:SS support.
-			if _, err := ParseAll(bytes.NewReader(raw)); err == nil && name != "invalid-extended-minutes.vtt" {
+			_, err := ParseAll(bytes.NewReader(raw))
+			if name == "invalid-extended-minutes.vtt" {
+				if err != nil {
+					t.Fatalf("legacy extended minutes: %v", err)
+				}
+			} else if err == nil {
 				t.Fatal("expected legacy error")
 			}
 		})
@@ -148,6 +152,7 @@ func TestDocumentPatchSafety(t *testing.T) {
 	}
 	d.Raw[0] = 'X'
 	d.TextNodes[0].Start = 0
+	d.Blocks[0].Block = Note{Text: "changed snapshot"}
 	got, err := d.Apply([]Patch{{n.Start, n.Start, "新"}})
 	if err != nil || !bytes.Equal(got, bytes.Replace(raw, []byte("日本"), []byte("新日本"), 1)) {
 		t.Fatalf("snapshot/insertion: %q, %v", got, err)
@@ -273,5 +278,69 @@ func TestDocumentRejectsEntityIntroduction(t *testing.T) {
 	start := bytes.Index(raw, []byte(" word"))
 	if _, err := d.Apply([]Patch{{start, start + len(" word"), "amp"}}); err == nil {
 		t.Fatal("accepted character reference assembled from source and replacement")
+	}
+}
+
+func TestDocumentRegionSnapshot(t *testing.T) {
+	raw := readDocumentFixture(t, "lossless.vtt")
+	d, err := ParseDocument(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, loc := range d.Blocks {
+		if region, ok := loc.Block.(Region); ok {
+			region.Settings["width"] = "changed snapshot"
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("fixture has no region")
+	}
+	n := d.TextNodes[0]
+	got, err := d.Apply([]Patch{{n.Start, n.End, "英語"}})
+	want := bytes.Replace(raw, []byte("日本"), []byte("英語"), 1)
+	if err != nil || !bytes.Equal(got, want) {
+		t.Fatalf("region snapshot: %q, %v", got, err)
+	}
+}
+
+func TestDocumentUninitialized(t *testing.T) {
+	for _, d := range []*Document{nil, {}} {
+		if _, err := d.Apply(nil); err == nil {
+			t.Fatal("Apply accepted an uninitialized document")
+		}
+		if _, err := d.CueText(nil); err == nil {
+			t.Fatal("CueText accepted an uninitialized document")
+		}
+	}
+}
+
+func TestDocumentUnorderedPatches(t *testing.T) {
+	raw := readDocumentFixture(t, "multiline.vtt")
+	d, err := ParseDocument(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n := d.TextNodes[0]
+	patches := []Patch{{n.End - 1, n.End, "T"}, {n.Start, n.Start + 1, "F"}}
+	original := append([]Patch(nil), patches...)
+	got, err := d.Apply(patches)
+	want := bytes.Replace(raw, []byte("first"), []byte("FirsT"), 1)
+	if err != nil || !bytes.Equal(got, want) {
+		t.Fatalf("unordered patches: %q, %v", got, err)
+	}
+	text, err := d.CueText(patches)
+	if err != nil || len(text) != 1 || text[0] != "FirsT\nsecond" {
+		t.Fatalf("visible text: %q, %v", text, err)
+	}
+	for i, p := range patches {
+		if p != original[i] {
+			t.Fatalf("patches mutated: %v", patches)
+		}
+	}
+	got, err = d.Apply(nil)
+	if err != nil || !bytes.Equal(got, raw) {
+		t.Fatalf("document mutated: %q, %v", got, err)
 	}
 }
