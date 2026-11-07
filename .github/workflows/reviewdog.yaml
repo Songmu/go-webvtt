@@ -18,10 +18,10 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+    - uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
-    - uses: reviewdog/action-staticcheck@50f9bfcf3738839ddc95deac241b904d77469096 # v1.28.0
+    - uses: reviewdog/action-staticcheck@v1.34.0
       with:
         reporter: github-pr-review
         fail_on_error: true
@@ -33,11 +33,11 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+    - uses: actions/checkout@v7.0.1
       with:
         persist-credentials: false
     - name: misspell
-      uses: reviewdog/action-misspell@d6429416b12b09b4e2768307d53bef58d172e962 # v1.27.0
+      uses: reviewdog/action-misspell@v1.31.0
       with:
         reporter: github-pr-review
         level: warning
@@ -49,9 +49,9 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1.72.0
+      - uses: reviewdog/action-actionlint@v1.83.0
         with:
           reporter: github-pr-review
