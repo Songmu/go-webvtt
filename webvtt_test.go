@@ -237,3 +237,15 @@ func TestParseContinuesAfterBlockError(t *testing.T) {
 		t.Fatalf("yield count: %d, want 2", calls)
 	}
 }
+
+func TestParseVoicesBoundaries(t *testing.T) {
+	text := " before <v A> one </v> between <v B> two </v> after "
+	want := []Voice{
+		{Text: "before"},
+		{Speaker: "A", Text: "one between"},
+		{Speaker: "B", Text: "two"},
+	}
+	if got := parseVoices(text); !reflect.DeepEqual(got, want) {
+		t.Fatalf("voices: %+v, want %+v", got, want)
+	}
+}

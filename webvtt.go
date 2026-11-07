@@ -407,13 +407,13 @@ func parseVoices(text string) []Voice {
 	lastEnd := 0
 	for i, match := range matches {
 		// Text before this voice tag (if any, and not part of a voice)
-		if match[0] > lastEnd {
-			prefix := strings.TrimSpace(text[lastEnd:match[0]])
-			if prefix != "" && len(voices) > 0 {
+		prefix := strings.TrimSpace(text[lastEnd:match[0]])
+		if prefix != "" {
+			if len(voices) == 0 {
+				voices = append(voices, Voice{Text: prefix})
+			} else {
 				// Append to previous voice
 				voices[len(voices)-1].Text += " " + prefix
-			} else if prefix != "" {
-				voices = append(voices, Voice{Text: prefix})
 			}
 		}
 
@@ -421,14 +421,11 @@ func parseVoices(text string) []Voice {
 		tagEnd := match[1]
 
 		// Find the end of this voice's text
-		var voiceText string
+		voiceText := text[tagEnd:]
 		if i+1 < len(matches) {
 			// Text until next voice tag or </v>
 			nextStart := matches[i+1][0]
 			voiceText = text[tagEnd:nextStart]
-		} else {
-			// Rest of text
-			voiceText = text[tagEnd:]
 		}
 
 		// Remove </v> if present
