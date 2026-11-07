@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"iter"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 // BlockType represents the type of a WebVTT block
@@ -82,16 +84,17 @@ type Region struct {
 func (r Region) blockType() BlockType { return BlockTypeRegion }
 
 var (
-	// Matches timestamp line: "00:00:01.000 --> 00:00:04.000" with optional settings
-	timestampLineRegex = regexp.MustCompile(`^(\d{1,2}:)?\d{2}:\d{2}\.\d{3}\s+-->\s+(\d{1,2}:)?\d{2}:\d{2}\.\d{3}`)
 	// Matches voice tag: <v Name>
-	voiceStartRegex = regexp.MustCompile(`<v\s+([^>]+)>`)
+	voiceStartRegex     = regexp.MustCompile(`<v\s+([^>]+)>`)
+	timestampArrowRegex = regexp.MustCompile(`[ \t]+-->[ \t]+`)
 )
 
 // Parse parses WebVTT content and returns an iterator of blocks
 func Parse(r io.Reader) iter.Seq2[Block, error] {
 	return func(yield func(Block, error) bool) {
 		scanner := bufio.NewScanner(r)
+		scanner.Split(splitWebVTTLines)
+		scanner.Buffer(make([]byte, 4096), math.MaxInt)
 
 		// Check WEBVTT header
 		if !scanner.Scan() {
@@ -103,14 +106,28 @@ func Parse(r io.Reader) iter.Seq2[Block, error] {
 			return
 		}
 		header := scanner.Text()
-		if !strings.HasPrefix(header, "WEBVTT") {
+		if !utf8.ValidString(header) || strings.ContainsRune(header, '\x00') || !validHeader(header) {
 			yield(nil, errors.New("missing WEBVTT header"))
 			return
 		}
 
 		var lines []string
+		inHeader := true
 		for scanner.Scan() {
 			line := scanner.Text()
+			if !utf8.ValidString(line) || strings.ContainsRune(line, '\x00') {
+				yield(nil, errors.New("WebVTT must be valid UTF-8 without NUL"))
+				return
+			}
+			if inHeader {
+				if line == "" {
+					inHeader = false
+				} else if strings.Contains(line, "-->") {
+					yield(nil, errors.New("missing blank line after WEBVTT header"))
+					return
+				}
+				continue
+			}
 
 			if line == "" {
 				// Empty line = end of block
@@ -174,7 +191,7 @@ func parseBlock(lines []string) (Block, error) {
 	first := lines[0]
 
 	// NOTE block
-	if text, ok := strings.CutPrefix(first, "NOTE"); ok {
+	if text, ok := strings.CutPrefix(first, "NOTE"); ok && (text == "" || strings.HasPrefix(text, " ") || strings.HasPrefix(text, "\t")) {
 		text = strings.TrimSpace(text)
 		if len(lines) > 1 {
 			text = text + "\n" + strings.Join(lines[1:], "\n")
@@ -188,7 +205,7 @@ func parseBlock(lines []string) (Block, error) {
 	}
 
 	// REGION block
-	if first == "REGION" || strings.HasPrefix(first, "REGION") {
+	if first == "REGION" || strings.HasPrefix(first, "REGION ") || strings.HasPrefix(first, "REGION\t") {
 		region := Region{Settings: make(map[string]string)}
 		startIdx := 0
 		if first == "REGION" {
@@ -223,7 +240,7 @@ func parseCue(lines []string) (Cue, error) {
 	idx := 0
 
 	// Check if first line is cue ID (not a timestamp line)
-	if !timestampLineRegex.MatchString(lines[0]) {
+	if !strings.Contains(lines[0], "-->") {
 		cue.ID = lines[0]
 		idx = 1
 	}
@@ -279,6 +296,12 @@ func parseTimestampLine(line string) (start, end time.Duration, settings CueSett
 	if err != nil {
 		return 0, 0, settings, fmt.Errorf("invalid end timestamp: %w", err)
 	}
+	if end <= start {
+		return 0, 0, settings, errors.New("end timestamp must be greater than start timestamp")
+	}
+	if !timestampArrowRegex.MatchString(line) {
+		return 0, 0, settings, errors.New("timestamp arrow must be surrounded by whitespace")
+	}
 
 	// Parse settings
 	for _, s := range restParts[1:] {
@@ -306,57 +329,58 @@ func parseTimestampLine(line string) (start, end time.Duration, settings CueSett
 }
 
 func parseTimestamp(s string) (time.Duration, error) {
-	parts := strings.Split(s, ":")
-	var hours, minutes, seconds int
-	var millis int
-	var err error
+	return parseTimestampValue(s, true)
+}
 
-	if len(parts) == 3 {
-		// HH:MM:SS.mmm
-		hours, err = strconv.Atoi(parts[0])
-		if err != nil {
-			return 0, err
-		}
-		minutes, err = strconv.Atoi(parts[1])
-		if err != nil {
-			return 0, err
-		}
-		secParts := strings.Split(parts[2], ".")
-		seconds, err = strconv.Atoi(secParts[0])
-		if err != nil {
-			return 0, err
-		}
-		if len(secParts) > 1 {
-			millis, err = strconv.Atoi(secParts[1])
-			if err != nil {
-				return 0, err
-			}
-		}
-	} else if len(parts) == 2 {
-		// MM:SS.mmm
-		minutes, err = strconv.Atoi(parts[0])
-		if err != nil {
-			return 0, err
-		}
-		secParts := strings.Split(parts[1], ".")
-		seconds, err = strconv.Atoi(secParts[0])
-		if err != nil {
-			return 0, err
-		}
-		if len(secParts) > 1 {
-			millis, err = strconv.Atoi(secParts[1])
-			if err != nil {
-				return 0, err
-			}
-		}
-	} else {
+func parseTimestampValue(s string, allowExtendedMinutes bool) (time.Duration, error) {
+	if !strictTimestampRegex.MatchString(s) {
 		return 0, errors.New("invalid timestamp format")
 	}
+	parts := strings.Split(s, ":")
+	short := len(parts) == 2
+	var hours uint64
+	if len(parts) == 3 {
+		var err error
+		hours, err = strconv.ParseUint(parts[0], 10, 64)
+		if err != nil {
+			return 0, errors.New("timestamp overflow")
+		}
+		parts = parts[1:]
+	}
+	minutes, _ := strconv.ParseUint(parts[0], 10, 64)
+	seconds, _ := strconv.ParseUint(parts[1][:2], 10, 64)
+	millis, _ := strconv.ParseUint(parts[1][3:], 10, 64)
+	if (minutes > 59 && !(short && allowExtendedMinutes)) || seconds > 59 {
+		return 0, errors.New("timestamp minutes and seconds must be below 60")
+	}
+	maxMillis := uint64(math.MaxInt64 / int64(time.Millisecond))
+	remainder := minutes*60000 + seconds*1000 + millis
+	if hours > maxMillis/3600000 || hours*3600000 > maxMillis-remainder {
+		return 0, errors.New("timestamp overflow")
+	}
+	return time.Duration(hours*3600000+remainder) * time.Millisecond, nil
+}
 
-	return time.Duration(hours)*time.Hour +
-		time.Duration(minutes)*time.Minute +
-		time.Duration(seconds)*time.Second +
-		time.Duration(millis)*time.Millisecond, nil
+var strictTimestampRegex = regexp.MustCompile(`^([0-9]{2,}:)?[0-9]{2}:[0-9]{2}\.[0-9]{3}$`)
+
+func splitWebVTTLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	for i, b := range data {
+		if b != '\r' && b != '\n' {
+			continue
+		}
+		if b == '\r' && i+1 == len(data) && !atEOF {
+			return 0, nil, nil
+		}
+		next := i + 1
+		if b == '\r' && next < len(data) && data[next] == '\n' {
+			next++
+		}
+		return next, data[:i], nil
+	}
+	if atEOF && len(data) > 0 {
+		return len(data), data, nil
+	}
+	return 0, nil, nil
 }
 
 func parseVoices(text string) []Voice {

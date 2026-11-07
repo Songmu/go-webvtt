@@ -77,7 +77,52 @@ func Parse(r io.Reader) iter.Seq2[Block, error]
 
 // Batch API - parses all cues into a WebVTT struct
 func ParseAll(r io.Reader) (*WebVTT, error)
+
+// Lossless API - retains original bytes, every block and editable text ranges
+func ParseDocument(raw []byte) (*Document, error)
+
+// Text-only patches use absolute, half-open byte offsets in the original input
+func (d *Document) Apply(patches []Patch) ([]byte, error)
+
+// Visible cue text after patches, including read-only character references
+func (d *Document) CueText(patches []Patch) ([]string, error)
 ```
+
+### Lossless editing
+
+```go
+doc, err := webvtt.ParseDocument(raw)
+if err != nil {
+	return err
+}
+node := doc.TextNodes[0]
+out, err := doc.Apply([]webvtt.Patch{
+	{Start: node.Start, End: node.End, Replacement: "Corrected text"},
+})
+```
+
+`Document.Raw` retains the input, and `Document.Blocks` includes cues, NOTE,
+STYLE and REGION blocks with their byte ranges. `TextNodes` are nonempty text
+runs with original byte offsets, zero-based cue indices and enclosing voice
+annotations. Tags (including inline timestamps), character references and line
+endings are read-only and excluded from these ranges. Character-reference-shaped
+sequences are conservatively protected even when their names are unknown.
+
+UTF-8 BOM, CR, CRLF, LF, mixed line endings and long lines are supported by both
+parsing APIs. `ParseDocument` rejects malformed UTF-8, NUL, malformed timestamps,
+out-of-range minutes/seconds, duration overflow and non-increasing cue intervals.
+The legacy parser retains its existing extended-minute `MM:SS.mmm` support.
+Header metadata is preserved before the first blank line.
+
+`Apply(nil)` returns bytes identical to the input. Edits never mutate the
+document, and later calls still use original offsets. Public slices are snapshots:
+changing them does not change the writer's source or permitted ranges. Patches
+must be disjoint, fit within one text node and use UTF-8 boundaries. Replacements
+must be valid UTF-8 and cannot contain `<`, `>`, `&`, NUL or line endings.
+Patches that create a new block separator or otherwise alter block/cue structure
+are rejected. Empty cue payloads are allowed; applications can use `CueText` to
+enforce their own visibility policy. This API is a structural parser and safe
+text writer, not a complete WebVTT rendering or CSS conformance validator.
 
 ## Author
 
