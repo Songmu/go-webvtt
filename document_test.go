@@ -181,6 +181,68 @@ func TestDocumentInlineTimestamps(t *testing.T) {
 	}
 }
 
+func TestDocumentTextScannerCrossLineState(t *testing.T) {
+	raw := []byte("WEBVTT\r\n\r\n00:01.000 --> 00:02.000\r\n" +
+		"<v.outer \tOuter  Voice \t>outer< v.inner\tInner  Voice >inner<unfinished\r\n" +
+		"continued</v>restored</v>after&Unknown9;tail&; &#; &#x41; &unfinished")
+	d, err := ParseDocument(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []struct {
+		text, speaker string
+	}{
+		{"outer", "Outer  Voice"},
+		{"inner", "r\tInner  Voice"},
+		{"continued", "r\tInner  Voice"},
+		{"restored", "Outer  Voice"},
+		{"after", ""},
+		{"tail&; ", ""},
+		{" ", ""},
+		{" &unfinished", ""},
+	}
+	if len(d.TextNodes) != len(want) {
+		t.Fatalf("nodes: %+v", d.TextNodes)
+	}
+	for i, expected := range want {
+		node := d.TextNodes[i]
+		text := string(raw[node.Start:node.End])
+		if text != expected.text || node.Speaker != expected.speaker || node.Cue != 0 {
+			t.Fatalf("node %d: %q, %+v; want %q and speaker %q",
+				i, text, node, expected.text, expected.speaker)
+		}
+	}
+}
+
+func TestDocumentInlineTimestampCrossLineOrder(t *testing.T) {
+	for _, tc := range []struct {
+		tag   string
+		valid bool
+	}{
+		{"00:01.600", true},
+		{"00:01.500", false},
+		{"00:01.400", false},
+		{"00:broken", false},
+		{" 00:broken", true},
+	} {
+		t.Run(tc.tag, func(t *testing.T) {
+			raw := []byte("WEBVTT\n\n00:01.000 --> 00:02.000\n" +
+				"first<00:01.500>\nsecond<" + tc.tag + ">third")
+			_, err := ParseDocument(raw)
+			if tc.valid {
+				if err != nil {
+					t.Fatal(err)
+				}
+				return
+			}
+			want := "cue at byte 8: invalid inline timestamp <" + tc.tag + ">"
+			if err == nil || err.Error() != want {
+				t.Fatalf("error: %v, want %q", err, want)
+			}
+		})
+	}
+}
+
 func TestDocumentRejectsEntityIntroduction(t *testing.T) {
 	raw := readDocumentFixture(t, "entity-introduction.vtt")
 	d, err := ParseDocument(raw)

@@ -164,47 +164,22 @@ func scanTextNodes(raw []byte, line sourceLine, cue int, speaker *string, voices
 		}
 	}
 	for i := line.start; i < line.end; {
-		if raw[i] == '<' {
+		switch raw[i] {
+		case '<':
 			flush(i)
-			end := i + 1
-			for end < line.end && raw[end] != '>' {
-				end++
-			}
-			if end < line.end {
-				tag := string(raw[i+1 : end])
-				if len(tag) > 0 && tag[0] >= '0' && tag[0] <= '9' {
-					stamp, err := parseTimestampValue(tag, false)
-					if err != nil || stamp <= *lastTimestamp || stamp >= cueEnd {
-						return nil, nil, fmt.Errorf("invalid inline timestamp <%s>", tag)
-					}
-					*lastTimestamp = stamp
+			tag, end, closed := scanTextTag(raw, i, line.end)
+			if closed {
+				if err := applyTextTag(tag, speaker, voices, lastTimestamp, cueEnd); err != nil {
+					return nil, nil, err
 				}
-				name := strings.Fields(tag)
-				if len(name) > 1 && (name[0] == "v" || strings.HasPrefix(name[0], "v.")) {
-					*voices = append(*voices, *speaker)
-					*speaker = strings.TrimSpace(tag[len(name[0]):])
-				} else if tag == "/v" {
-					*speaker = ""
-					if n := len(*voices); n > 0 {
-						*speaker = (*voices)[n-1]
-						*voices = (*voices)[:n-1]
-					}
-				}
-				end++
 			}
 			i, run = end, end
 			continue
-		}
-		if raw[i] == '&' {
-			end := i + 1
-			for end < line.end && ((raw[end] >= 'a' && raw[end] <= 'z') ||
-				(raw[end] >= 'A' && raw[end] <= 'Z') || (raw[end] >= '0' && raw[end] <= '9') || raw[end] == '#') {
-				end++
-			}
-			if end > i+1 && end < line.end && raw[end] == ';' {
+		case '&':
+			if end := characterReferenceEnd(raw, i, line.end); end > i {
 				flush(i)
-				entities = append(entities, entityNode{Start: i, End: end + 1, Cue: cue})
-				i, run = end+1, end+1
+				entities = append(entities, entityNode{Start: i, End: end, Cue: cue})
+				i, run = end, end
 				continue
 			}
 		}
@@ -212,6 +187,56 @@ func scanTextNodes(raw []byte, line sourceLine, cue int, speaker *string, voices
 	}
 	flush(line.end)
 	return nodes, entities, nil
+}
+
+func scanTextTag(raw []byte, start, lineEnd int) (tag string, end int, closed bool) {
+	offset := bytes.IndexByte(raw[start+1:lineEnd], '>')
+	if offset < 0 {
+		// An unclosed tag consumes the rest of this line without changing state.
+		return "", lineEnd, false
+	}
+	end = start + 1 + offset
+	return string(raw[start+1 : end]), end + 1, true
+}
+
+func applyTextTag(tag string, speaker *string, voices *[]string, lastTimestamp *time.Duration, cueEnd time.Duration) error {
+	if len(tag) > 0 && tag[0] >= '0' && tag[0] <= '9' {
+		stamp, err := parseTimestampValue(tag, false)
+		if err != nil || stamp <= *lastTimestamp || stamp >= cueEnd {
+			return fmt.Errorf("invalid inline timestamp <%s>", tag)
+		}
+		*lastTimestamp = stamp
+	}
+
+	name := strings.Fields(tag)
+	if len(name) > 1 && (name[0] == "v" || strings.HasPrefix(name[0], "v.")) {
+		*voices = append(*voices, *speaker)
+		// Extract from the original tag, not from whitespace-normalized fields.
+		*speaker = strings.TrimSpace(tag[len(name[0]):])
+		return nil
+	}
+	if tag != "/v" {
+		return nil
+	}
+	*speaker = ""
+	if n := len(*voices); n > 0 {
+		*speaker = (*voices)[n-1]
+		*voices = (*voices)[:n-1]
+	}
+	return nil
+}
+
+func characterReferenceEnd(raw []byte, start, lineEnd int) int {
+	end := start + 1
+	for end < lineEnd && ((raw[end] >= 'a' && raw[end] <= 'z') ||
+		(raw[end] >= 'A' && raw[end] <= 'Z') || (raw[end] >= '0' && raw[end] <= '9') || raw[end] == '#') {
+		end++
+	}
+	// Unknown references are still read-only; incomplete sequences remain text.
+	if end > start+1 && end < lineEnd && raw[end] == ';' {
+		return end + 1
+	}
+	return start
 }
 
 // Apply returns losslessly patched bytes. Patches must be disjoint, lie within
