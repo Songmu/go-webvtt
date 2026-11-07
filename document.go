@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"html"
+	"maps"
 	"reflect"
 	"sort"
 	"strings"
@@ -54,6 +55,17 @@ type entityNode struct {
 	Start, End, Cue int
 }
 
+func cloneLocatedBlocks(blocks []LocatedBlock) []LocatedBlock {
+	blocks = append([]LocatedBlock(nil), blocks...)
+	for i, loc := range blocks {
+		if region, ok := loc.Block.(Region); ok {
+			region.Settings = maps.Clone(region.Settings)
+			blocks[i].Block = region
+		}
+	}
+	return blocks
+}
+
 func sourceLines(raw []byte) []sourceLine {
 	var lines []sourceLine
 	for start := 0; start < len(raw); {
@@ -100,7 +112,7 @@ func ParseDocument(raw []byte) (*Document, error) {
 		return nil, err
 	}
 	d.nodes = append([]TextNode(nil), d.TextNodes...)
-	d.blocks = append([]LocatedBlock(nil), d.Blocks...)
+	d.blocks = cloneLocatedBlocks(d.Blocks)
 	return d, nil
 }
 

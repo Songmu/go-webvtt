@@ -281,6 +281,30 @@ func TestDocumentRejectsEntityIntroduction(t *testing.T) {
 	}
 }
 
+func TestDocumentRegionSnapshot(t *testing.T) {
+	raw := readDocumentFixture(t, "lossless.vtt")
+	d, err := ParseDocument(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, loc := range d.Blocks {
+		if region, ok := loc.Block.(Region); ok {
+			region.Settings["width"] = "changed snapshot"
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("fixture has no region")
+	}
+	n := d.TextNodes[0]
+	got, err := d.Apply([]Patch{{n.Start, n.End, "英語"}})
+	want := bytes.Replace(raw, []byte("日本"), []byte("英語"), 1)
+	if err != nil || !bytes.Equal(got, want) {
+		t.Fatalf("region snapshot: %q, %v", got, err)
+	}
+}
+
 func TestDocumentUninitialized(t *testing.T) {
 	for _, d := range []*Document{nil, {}} {
 		if _, err := d.Apply(nil); err == nil {
