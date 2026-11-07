@@ -245,6 +245,7 @@ func (d *Document) validatePatches(patches []Patch) ([]Patch, error) {
 	})
 	for i, p := range ordered {
 		if err := d.validatePatch(p); err != nil {
+			// Preserve the original non-wrapping patch errors.
 			return nil, fmt.Errorf("patch %d: %s", i, err)
 		}
 		if i > 0 && (p.Start < ordered[i-1].End || p.Start == ordered[i-1].Start) {
