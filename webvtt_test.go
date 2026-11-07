@@ -119,18 +119,6 @@ func TestParseRegionSettings(t *testing.T) {
 	}
 }
 
-func TestParseVoicesBoundaries(t *testing.T) {
-	text := " before <v A> one </v> between <v B> two </v> after "
-	want := []Voice{
-		{Text: "before"},
-		{Speaker: "A", Text: "one between"},
-		{Speaker: "B", Text: "two"},
-	}
-	if got := parseVoices(text); !reflect.DeepEqual(got, want) {
-		t.Fatalf("voices: %+v, want %+v", got, want)
-	}
-}
-
 func TestParseAll_Invalid(t *testing.T) {
 	// Invalid VTT files: testdata/invalid-*.vtt
 	invalidFiles := collectVTTFiles(t, "invalid-*.vtt")
@@ -247,5 +235,17 @@ func TestParseContinuesAfterBlockError(t *testing.T) {
 	}
 	if calls != 2 {
 		t.Fatalf("yield count: %d, want 2", calls)
+	}
+}
+
+func TestParseVoicesBoundaries(t *testing.T) {
+	text := " before <v A> one </v> between <v B> two </v> after "
+	want := []Voice{
+		{Text: "before"},
+		{Speaker: "A", Text: "one between"},
+		{Speaker: "B", Text: "two"},
+	}
+	if got := parseVoices(text); !reflect.DeepEqual(got, want) {
+		t.Fatalf("voices: %+v, want %+v", got, want)
 	}
 }
