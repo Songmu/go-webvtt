@@ -9,6 +9,7 @@ STYLE
 
 REGION
 id:main
+width:40%
 
 cue-id
 100:00:01.000 --> 100:00:02.000 align:start
