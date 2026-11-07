@@ -184,6 +184,10 @@ func ParseAll(r io.Reader) (*WebVTT, error) {
 }
 
 func parseBlock(lines []string) (Block, error) {
+	return parseBlockWithTimestampPolicy(lines, true)
+}
+
+func parseBlockWithTimestampPolicy(lines []string, allowExtendedMinutes bool) (Block, error) {
 	if len(lines) == 0 {
 		return nil, nil
 	}
@@ -206,36 +210,36 @@ func parseBlock(lines []string) (Block, error) {
 
 	// REGION block
 	if first == "REGION" || strings.HasPrefix(first, "REGION ") || strings.HasPrefix(first, "REGION\t") {
-		region := Region{Settings: make(map[string]string)}
-		startIdx := 0
-		if first == "REGION" {
-			startIdx = 1
-		} else {
-			// REGION with inline settings on first line not standard, but handle it
-			startIdx = 0
-		}
-		for _, line := range lines[startIdx:] {
-			if line == "REGION" {
-				continue
-			}
-			if idx := strings.Index(line, ":"); idx > 0 {
-				key := strings.TrimSpace(line[:idx])
-				value := strings.TrimSpace(line[idx+1:])
-				if key == "id" {
-					region.ID = value
-				} else {
-					region.Settings[key] = value
-				}
-			}
-		}
-		return region, nil
+		return parseRegion(lines), nil
 	}
 
 	// Cue block
-	return parseCue(lines)
+	return parseCue(lines, allowExtendedMinutes)
 }
 
-func parseCue(lines []string) (Cue, error) {
+func parseRegion(lines []string) Region {
+	region := Region{Settings: make(map[string]string)}
+	// Preserve nonstandard inline settings, including the REGION prefix in keys.
+	for _, line := range lines {
+		if line == "REGION" {
+			continue
+		}
+		idx := strings.Index(line, ":")
+		if idx <= 0 {
+			continue
+		}
+		key := strings.TrimSpace(line[:idx])
+		value := strings.TrimSpace(line[idx+1:])
+		if key == "id" {
+			region.ID = value
+		} else {
+			region.Settings[key] = value
+		}
+	}
+	return region
+}
+
+func parseCue(lines []string, allowExtendedMinutes bool) (Cue, error) {
 	var cue Cue
 	idx := 0
 
@@ -251,7 +255,7 @@ func parseCue(lines []string) (Cue, error) {
 
 	// Parse timestamp line
 	tsLine := lines[idx]
-	startTime, endTime, settings, err := parseTimestampLine(tsLine)
+	startTime, endTime, settings, err := parseTimestampLine(tsLine, allowExtendedMinutes)
 	if err != nil {
 		return cue, err
 	}
@@ -269,7 +273,7 @@ func parseCue(lines []string) (Cue, error) {
 	return cue, nil
 }
 
-func parseTimestampLine(line string) (start, end time.Duration, settings CueSettings, err error) {
+func parseTimestampLine(line string, allowExtendedMinutes bool) (start, end time.Duration, settings CueSettings, err error) {
 	// Split by "-->"
 	parts := strings.SplitN(line, "-->", 2)
 	if len(parts) != 2 {
@@ -302,6 +306,10 @@ func parseTimestampLine(line string) (start, end time.Duration, settings CueSett
 	if !timestampArrowRegex.MatchString(line) {
 		return 0, 0, settings, errors.New("timestamp arrow must be surrounded by whitespace")
 	}
+	// Document range checks follow all common errors and remain unwrapped.
+	if !allowExtendedMinutes && (hasExtendedMinutes(startStr, start) || hasExtendedMinutes(endStr, end)) {
+		return 0, 0, settings, errors.New("timestamp minutes and seconds must be below 60")
+	}
 
 	// Parse settings
 	for _, s := range restParts[1:] {
@@ -326,6 +334,10 @@ func parseTimestampLine(line string) (start, end time.Duration, settings CueSett
 	}
 
 	return start, end, settings, nil
+}
+
+func hasExtendedMinutes(timestamp string, value time.Duration) bool {
+	return strings.Count(timestamp, ":") == 1 && value >= time.Hour
 }
 
 func parseTimestamp(s string) (time.Duration, error) {

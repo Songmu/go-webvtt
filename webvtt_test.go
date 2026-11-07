@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -93,6 +94,24 @@ func TestParse(t *testing.T) {
 			}
 			if diff := golden.Diff(t, "testdata", goldenName, got); diff != "" {
 				t.Error(diff)
+			}
+		})
+	}
+}
+
+func TestParseRegionSettings(t *testing.T) {
+	for _, first := range []string{"REGION", "REGION width: 10%", "REGION\tid: inline"} {
+		t.Run(first, func(t *testing.T) {
+			block, err := parseBlock([]string{
+				first, "REGION", " id : first ", "id: last", " width : 20% ", "width: 30%", "ignored", ":ignored",
+			})
+			want := Region{ID: "last", Settings: map[string]string{"width": "30%"}}
+			if first != "REGION" {
+				key, value, _ := strings.Cut(first, ":")
+				want.Settings[key] = strings.TrimSpace(value)
+			}
+			if err != nil || !reflect.DeepEqual(block, want) {
+				t.Fatalf("region: %#v, %v, want %#v", block, err, want)
 			}
 		})
 	}

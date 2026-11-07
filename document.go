@@ -91,67 +91,84 @@ func ParseDocument(raw []byte) (*Document, error) {
 	if len(lines) == 0 || !validHeader(string(raw[lines[0].start:lines[0].end])) {
 		return nil, fmt.Errorf("missing or invalid WEBVTT header")
 	}
+	start, err := documentBodyStart(raw, lines)
+	if err != nil {
+		return nil, err
+	}
 	d := &Document{raw: bytes.Clone(raw), Raw: bytes.Clone(raw)}
+	if err := d.collectBlocks(raw, lines, start); err != nil {
+		return nil, err
+	}
+	d.nodes = append([]TextNode(nil), d.TextNodes...)
+	d.blocks = append([]LocatedBlock(nil), d.Blocks...)
+	return d, nil
+}
+
+func documentBodyStart(raw []byte, lines []sourceLine) (int, error) {
 	i := 1
 	// Header metadata belongs to the header, not to a cue.
 	for i < len(lines) && lines[i].start != lines[i].end {
 		if bytes.Contains(raw[lines[i].start:lines[i].end], []byte("-->")) {
-			return nil, fmt.Errorf("missing blank line after WEBVTT header")
+			return 0, fmt.Errorf("missing blank line after WEBVTT header")
 		}
 		i++
 	}
-	cueIndex := 0
+	return i, nil
+}
+
+func (d *Document) collectBlocks(raw []byte, lines []sourceLine, i int) error {
 	for i < len(lines) {
 		if lines[i].start == lines[i].end {
 			i++
 			continue
 		}
 		first := i
-		var text []string
-		for i < len(lines) && lines[i].start != lines[i].end {
-			text = append(text, string(raw[lines[i].start:lines[i].end]))
-			i++
-		}
-		block, err := parseBlock(text)
+		text, next := documentBlockLines(raw, lines, first)
+		i = next
+		block, err := parseBlockWithTimestampPolicy(text, false)
 		if err != nil {
-			return nil, fmt.Errorf("block at byte %d: %w", lines[first].start, err)
+			return fmt.Errorf("block at byte %d: %w", lines[first].start, err)
 		}
 		loc := LocatedBlock{Block: block, Start: lines[first].start, End: lines[i-1].next, Cue: -1}
 		if cue, ok := block.(Cue); ok {
-			timing := text[0]
-			if !strings.Contains(timing, "-->") {
-				timing = text[1]
-			}
-			parts := strings.SplitN(timing, "-->", 2)
-			for _, stamp := range []string{strings.TrimSpace(parts[0]), strings.Fields(parts[1])[0]} {
-				if _, err := parseTimestampValue(stamp, false); err != nil {
-					return nil, fmt.Errorf("block at byte %d: %w", lines[first].start, err)
-				}
-			}
-			loc.Cue = cueIndex
+			loc.Cue = d.cueCount
 			payload := first + 1
 			if !strings.Contains(text[0], "-->") {
 				payload++
 			}
-			speaker := ""
-			var voices []string
-			lastTimestamp := cue.StartTime
-			for n := payload; n < i; n++ {
-				nodes, entities, err := scanTextNodes(raw, lines[n], cueIndex, &speaker, &voices, &lastTimestamp, cue.EndTime)
-				if err != nil {
-					return nil, fmt.Errorf("cue at byte %d: %w", loc.Start, err)
-				}
-				d.TextNodes = append(d.TextNodes, nodes...)
-				d.entities = append(d.entities, entities...)
+			if err := d.collectCuePayload(raw, lines[payload:i], cue, loc.Cue); err != nil {
+				return fmt.Errorf("cue at byte %d: %w", loc.Start, err)
 			}
-			cueIndex++
+			d.cueCount++
 		}
 		d.Blocks = append(d.Blocks, loc)
 	}
-	d.nodes = append([]TextNode(nil), d.TextNodes...)
-	d.cueCount = cueIndex
-	d.blocks = append([]LocatedBlock(nil), d.Blocks...)
-	return d, nil
+	return nil
+}
+
+func documentBlockLines(raw []byte, lines []sourceLine, first int) ([]string, int) {
+	var text []string
+	i := first
+	for i < len(lines) && lines[i].start != lines[i].end {
+		text = append(text, string(raw[lines[i].start:lines[i].end]))
+		i++
+	}
+	return text, i
+}
+
+func (d *Document) collectCuePayload(raw []byte, lines []sourceLine, cue Cue, cueIndex int) error {
+	speaker := ""
+	var voices []string
+	lastTimestamp := cue.StartTime
+	for _, line := range lines {
+		nodes, entities, err := scanTextNodes(raw, line, cueIndex, &speaker, &voices, &lastTimestamp, cue.EndTime)
+		if err != nil {
+			return err
+		}
+		d.TextNodes = append(d.TextNodes, nodes...)
+		d.entities = append(d.entities, entities...)
+	}
+	return nil
 }
 
 func scanTextNodes(raw []byte, line sourceLine, cue int, speaker *string, voices *[]string, lastTimestamp *time.Duration, cueEnd time.Duration) ([]TextNode, []entityNode, error) {

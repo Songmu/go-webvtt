@@ -85,6 +85,27 @@ func TestDocumentRejectsMalformed(t *testing.T) {
 	}
 }
 
+func TestDocumentTimestampErrorPrecedence(t *testing.T) {
+	for _, tc := range []struct {
+		name, timing, want string
+	}{
+		{"strict-range", "60:00.000 --> 61:00.000", "timestamp minutes and seconds must be below 60"},
+		{"invalid-end", "60:00.000 --> invalid", "invalid end timestamp: invalid timestamp format"},
+		{"missing-end", "60:00.000 -->", "missing end timestamp"},
+		{"reversed-times", "60:00.000 --> 00:02.000", "end timestamp must be greater than start timestamp"},
+		{"arrow-spacing", "60:00.000-->61:00.000", "timestamp arrow must be surrounded by whitespace"},
+		{"strict-end-range", "00:01.000 --> 60:00.000", "timestamp minutes and seconds must be below 60"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := ParseDocument([]byte("WEBVTT\n\n" + tc.timing + "\ntext\n"))
+			want := "block at byte 8: " + tc.want
+			if err == nil || err.Error() != want {
+				t.Fatalf("parse error: %v, want %q", err, want)
+			}
+		})
+	}
+}
+
 func TestDocumentRejectsInvalidBytes(t *testing.T) {
 	fixture := readDocumentFixture(t, "multiline.vtt")
 	for _, tc := range []struct {
