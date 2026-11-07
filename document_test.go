@@ -2,20 +2,26 @@ package webvtt
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
 
+func readDocumentFixture(t *testing.T, name string) []byte {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join("testdata", "document", name))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
+}
+
 func TestDocumentLossless(t *testing.T) {
+	fixture := readDocumentFixture(t, "lossless.vtt")
 	for _, newline := range []string{"\n", "\r", "\r\n"} {
 		t.Run(strings.ReplaceAll(strings.ReplaceAll(newline, "\r", "CR"), "\n", "LF"), func(t *testing.T) {
-			raw := []byte(strings.Join([]string{
-				"\ufeffWEBVTT description", "metadata", "",
-				"NOTE comment", "untouched", "", "STYLE", "::cue {color:red}", "",
-				"REGION", "id:main", "", "cue-id",
-				"100:00:01.000 --> 100:00:02.000 align:start",
-				"<v Alice><b>日本</b>&amp;語</v> after", "second", "",
-			}, newline))
+			raw := bytes.ReplaceAll(fixture, []byte("\n"), []byte(newline))
 			d, err := ParseDocument(raw)
 			if err != nil {
 				t.Fatal(err)
@@ -65,32 +71,35 @@ func TestDocumentLongAndMixedLines(t *testing.T) {
 }
 
 func TestDocumentRejectsMalformed(t *testing.T) {
-	inputs := []string{
-		"WEBVTTx\n\n00:01.000 --> 00:02.000\ntext",
-		"WEBVTT -->\n",
-		"WEBVTT\n00:01.000 --> 00:02.000\ntext",
-		"WEBVTT\n\n00:01.000 --> 00:02.000\n\xff",
-		"WEBVTT\n\n00:01.000 --> 00:02.000\n\x00",
-		"WEBVTT\n\ncue-id",
-	}
-	for _, ts := range []string{
-		"1:01.000", "00:60.000", "60:00.000", "00:01", "00:01.00",
-		"00:01.000junk", "-1:00:01.000", "01:00:01.000.1",
-		"99999999999999999999:00:01.000",
-	} {
-		inputs = append(inputs, "WEBVTT\n\n"+ts+" --> 00:02.000\ntext")
-	}
-	inputs = append(inputs,
-		"WEBVTT\n\n00:02.000 --> 00:01.000\ntext",
-		"WEBVTT\n\n00:01.000 --> 00:01.000\ntext",
-		"WEBVTT\n\n00:01.000-->00:02.000\ntext")
-	for _, input := range inputs {
-		t.Run(input, func(t *testing.T) {
-			if _, err := ParseDocument([]byte(input)); err == nil {
+	for _, name := range collectVTTFiles(t, "document/invalid-*.vtt") {
+		t.Run(name, func(t *testing.T) {
+			raw := readDocumentFixture(t, name)
+			if _, err := ParseDocument(raw); err == nil {
 				t.Fatal("expected lossless error")
 			}
 			// The legacy iterator intentionally retains extended MM:SS support.
-			if _, err := ParseAll(strings.NewReader(input)); err == nil && !strings.Contains(input, "60:00.000") {
+			if _, err := ParseAll(bytes.NewReader(raw)); err == nil && name != "invalid-extended-minutes.vtt" {
+				t.Fatal("expected legacy error")
+			}
+		})
+	}
+}
+
+func TestDocumentRejectsInvalidBytes(t *testing.T) {
+	fixture := readDocumentFixture(t, "multiline.vtt")
+	for _, tc := range []struct {
+		name string
+		b    byte
+	}{
+		{"invalid-utf8", 0xff},
+		{"nul", 0x00},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			raw := append(bytes.Clone(fixture), tc.b)
+			if _, err := ParseDocument(raw); err == nil {
+				t.Fatal("expected lossless error")
+			}
+			if _, err := ParseAll(bytes.NewReader(raw)); err == nil {
 				t.Fatal("expected legacy error")
 			}
 		})
@@ -98,7 +107,7 @@ func TestDocumentRejectsMalformed(t *testing.T) {
 }
 
 func TestDocumentPatchSafety(t *testing.T) {
-	raw := []byte("WEBVTT\n\n00:01.000 --> 00:02.000\n<v A>日本&amp;語</v>\n")
+	raw := readDocumentFixture(t, "patch-safety.vtt")
 	d, err := ParseDocument(raw)
 	if err != nil {
 		t.Fatal(err)
@@ -125,7 +134,7 @@ func TestDocumentPatchSafety(t *testing.T) {
 }
 
 func TestDocumentVisibleTextAndStructure(t *testing.T) {
-	raw := []byte("WEBVTT\n\n00:01.000 --> 00:02.000\n<v A>x&amp;<i>y</i></v>\nz\n")
+	raw := readDocumentFixture(t, "visible-text.vtt")
 	d, err := ParseDocument(raw)
 	if err != nil {
 		t.Fatal(err)
@@ -136,7 +145,7 @@ func TestDocumentVisibleTextAndStructure(t *testing.T) {
 	if err != nil || len(text) != 1 || text[0] != "&\nz" {
 		t.Fatalf("visible text: %q, %v", text, err)
 	}
-	d, err = ParseDocument([]byte("WEBVTT\n\n00:01.000 --> 00:02.000\nfirst\nsecond\n"))
+	d, err = ParseDocument(readDocumentFixture(t, "multiline.vtt"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -148,30 +157,32 @@ func TestDocumentVisibleTextAndStructure(t *testing.T) {
 
 func TestDocumentInlineTimestamps(t *testing.T) {
 	for _, tc := range []struct {
-		payload string
-		valid   bool
+		name  string
+		valid bool
 	}{
-		{"a<00:01.500>b", true},
-		{"a<00:99.000>b", false},
-		{"a<00:01.000>b", false},
-		{"a<00:02.000>b", false},
-		{"a<00:01.500>b<00:01.400>c", false},
+		{"inline-timestamp.vtt", true},
+		{"invalid-inline-timestamp.vtt", false},
+		{"invalid-inline-at-start.vtt", false},
+		{"invalid-inline-at-end.vtt", false},
+		{"invalid-inline-order.vtt", false},
 	} {
-		d, err := ParseDocument([]byte("WEBVTT\n\n00:01.000 --> 00:02.000\n" + tc.payload))
-		if (err == nil) != tc.valid {
-			t.Fatalf("%s: %v", tc.payload, err)
-		}
-		if tc.valid {
-			text, err := d.CueText(nil)
-			if err != nil || text[0] != "ab" {
-				t.Fatalf("timestamp must be read-only: %v, %v", text, err)
+		t.Run(tc.name, func(t *testing.T) {
+			d, err := ParseDocument(readDocumentFixture(t, filepath.Join("inline-timestamps", tc.name)))
+			if (err == nil) != tc.valid {
+				t.Fatalf("parse: %v", err)
 			}
-		}
+			if tc.valid {
+				text, err := d.CueText(nil)
+				if err != nil || text[0] != "ab" {
+					t.Fatalf("timestamp must be read-only: %v, %v", text, err)
+				}
+			}
+		})
 	}
 }
 
 func TestDocumentRejectsEntityIntroduction(t *testing.T) {
-	raw := []byte("WEBVTT\n\n00:01.000 --> 00:02.000\n& word;")
+	raw := readDocumentFixture(t, "entity-introduction.vtt")
 	d, err := ParseDocument(raw)
 	if err != nil {
 		t.Fatal(err)

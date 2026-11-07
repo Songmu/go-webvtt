@@ -1,0 +1,16 @@
+﻿WEBVTT description
+metadata
+
+NOTE comment
+untouched
+
+STYLE
+::cue {color:red}
+
+REGION
+id:main
+
+cue-id
+100:00:01.000 --> 100:00:02.000 align:start
+<v Alice><b>日本</b>&amp;語</v> after
+second
