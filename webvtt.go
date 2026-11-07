@@ -96,77 +96,76 @@ func Parse(r io.Reader) iter.Seq2[Block, error] {
 		scanner.Split(splitWebVTTLines)
 		scanner.Buffer(make([]byte, 4096), math.MaxInt)
 
-		// Check WEBVTT header
-		if !scanner.Scan() {
-			if err := scanner.Err(); err != nil {
-				yield(nil, err)
-			} else {
-				yield(nil, errors.New("empty input"))
-			}
-			return
-		}
-		header := scanner.Text()
-		if !utf8.ValidString(header) || strings.ContainsRune(header, '\x00') || !validHeader(header) {
-			yield(nil, errors.New("missing WEBVTT header"))
+		if err := scanHeader(scanner); err != nil {
+			yield(nil, err)
 			return
 		}
 
 		var lines []string
-		inHeader := true
 		for scanner.Scan() {
 			line := scanner.Text()
 			if !utf8.ValidString(line) || strings.ContainsRune(line, '\x00') {
 				yield(nil, errors.New("WebVTT must be valid UTF-8 without NUL"))
 				return
 			}
-			if inHeader {
-				if line == "" {
-					inHeader = false
-				} else if strings.Contains(line, "-->") {
-					yield(nil, errors.New("missing blank line after WEBVTT header"))
+			if line == "" {
+				if more, _ := yieldParsedBlock(lines, yield); !more {
 					return
 				}
-				continue
-			}
-
-			if line == "" {
-				// Empty line = end of block
-				if len(lines) > 0 {
-					block, err := parseBlock(lines)
-					if err != nil {
-						if !yield(nil, err) {
-							return
-						}
-					} else if block != nil {
-						if !yield(block, nil) {
-							return
-						}
-					}
-					lines = nil
-				}
+				lines = nil
 				continue
 			}
 			lines = append(lines, line)
 		}
 
-		// Handle last block
-		if len(lines) > 0 {
-			block, err := parseBlock(lines)
-			if err != nil {
-				yield(nil, err)
-				return
-			}
-			if block != nil {
-				if !yield(block, nil) {
-					return
-				}
-			}
+		// A malformed final block takes precedence over a scanner error.
+		if more, err := yieldParsedBlock(lines, yield); !more || err != nil {
+			return
 		}
 
 		if err := scanner.Err(); err != nil {
 			yield(nil, err)
 		}
 	}
+}
+
+func scanHeader(scanner *bufio.Scanner) error {
+	if !scanner.Scan() {
+		if err := scanner.Err(); err != nil {
+			return err
+		}
+		return errors.New("empty input")
+	}
+	header := scanner.Text()
+	if !utf8.ValidString(header) || strings.ContainsRune(header, '\x00') || !validHeader(header) {
+		return errors.New("missing WEBVTT header")
+	}
+	for scanner.Scan() {
+		line := scanner.Text()
+		if !utf8.ValidString(line) || strings.ContainsRune(line, '\x00') {
+			return errors.New("WebVTT must be valid UTF-8 without NUL")
+		}
+		if line == "" {
+			return nil
+		}
+		if strings.Contains(line, "-->") {
+			return errors.New("missing blank line after WEBVTT header")
+		}
+	}
+	return scanner.Err()
+}
+
+// yieldParsedBlock reports parse errors as well as blocks. The returned error
+// has already been yielded; the caller decides whether parsing can continue.
+func yieldParsedBlock(lines []string, yield func(Block, error) bool) (bool, error) {
+	block, err := parseBlock(lines)
+	if err != nil {
+		return yield(nil, err), err
+	}
+	if block != nil {
+		return yield(block, nil), nil
+	}
+	return true, nil
 }
 
 // ParseAll parses WebVTT content and returns a WebVTT struct containing all cues
