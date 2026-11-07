@@ -344,3 +344,21 @@ func TestDocumentUnorderedPatches(t *testing.T) {
 		t.Fatalf("document mutated: %q, %v", got, err)
 	}
 }
+
+func TestDocumentCueTextNodePatches(t *testing.T) {
+	d, err := ParseDocument(readDocumentFixture(t, "visible-text.vtt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	nodes := d.TextNodes
+	patches := []Patch{
+		{nodes[2].Start, nodes[2].End, "last"},
+		{nodes[1].Start, nodes[1].Start, "Y"},
+		{nodes[0].End, nodes[0].End, "日本"},
+		{nodes[0].Start, nodes[0].Start, "first"},
+	}
+	text, err := d.CueText(patches)
+	if err != nil || len(text) != 1 || text[0] != "firstx日本&Yy\nlast" {
+		t.Fatalf("visible text: %q, %v", text, err)
+	}
+}
