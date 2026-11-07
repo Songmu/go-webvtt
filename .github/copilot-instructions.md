@@ -43,6 +43,6 @@ cue-identifier
 ## Conventions
 
 - Package name is `webvtt` (not `go-webvtt`)
-- Version management uses [godzil](https://github.com/Songmu/godzil) - do not manually edit version.go for releases
+- Version management uses [tagpr](https://github.com/Songmu/tagpr) with `versionFile = -`; there is no version file
 - Test data files go in `testdata/` directory
 - Invalid test files use `invalid-*.vtt` naming convention
