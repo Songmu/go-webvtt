@@ -222,6 +222,20 @@ func (d *Document) Apply(patches []Patch) ([]byte, error) {
 	if d == nil || d.raw == nil {
 		return nil, fmt.Errorf("document was not created by ParseDocument")
 	}
+	ordered, err := d.validatePatches(patches)
+	if err != nil {
+		return nil, err
+	}
+	out := d.applyOrderedPatches(ordered)
+	if len(ordered) > 0 {
+		if err := d.validatePatchedStructure(out); err != nil {
+			return nil, err
+		}
+	}
+	return out, nil
+}
+
+func (d *Document) validatePatches(patches []Patch) ([]Patch, error) {
 	ordered := append([]Patch(nil), patches...)
 	sort.SliceStable(ordered, func(i, j int) bool {
 		if ordered[i].Start == ordered[j].Start {
@@ -230,28 +244,34 @@ func (d *Document) Apply(patches []Patch) ([]byte, error) {
 		return ordered[i].Start < ordered[j].Start
 	})
 	for i, p := range ordered {
-		if p.Start < 0 || p.End < p.Start || p.End > len(d.raw) ||
-			(p.Start < len(d.raw) && !utf8.RuneStart(d.raw[p.Start])) ||
-			(p.End < len(d.raw) && !utf8.RuneStart(d.raw[p.End])) {
-			return nil, fmt.Errorf("patch %d: invalid UTF-8 range", i)
-		}
-		if !utf8.ValidString(p.Replacement) || strings.ContainsAny(p.Replacement, "<>&\r\n\x00") {
-			return nil, fmt.Errorf("patch %d: replacement is not plain text", i)
-		}
-		inside := false
-		for _, node := range d.nodes {
-			if p.Start >= node.Start && p.End <= node.End {
-				inside = true
-				break
-			}
-		}
-		if !inside {
-			return nil, fmt.Errorf("patch %d: range is not inside a text node", i)
+		if err := d.validatePatch(p); err != nil {
+			return nil, fmt.Errorf("patch %d: %s", i, err)
 		}
 		if i > 0 && (p.Start < ordered[i-1].End || p.Start == ordered[i-1].Start) {
 			return nil, fmt.Errorf("patch %d: overlapping patches", i)
 		}
 	}
+	return ordered, nil
+}
+
+func (d *Document) validatePatch(p Patch) error {
+	if p.Start < 0 || p.End < p.Start || p.End > len(d.raw) ||
+		(p.Start < len(d.raw) && !utf8.RuneStart(d.raw[p.Start])) ||
+		(p.End < len(d.raw) && !utf8.RuneStart(d.raw[p.End])) {
+		return fmt.Errorf("invalid UTF-8 range")
+	}
+	if !utf8.ValidString(p.Replacement) || strings.ContainsAny(p.Replacement, "<>&\r\n\x00") {
+		return fmt.Errorf("replacement is not plain text")
+	}
+	for _, node := range d.nodes {
+		if p.Start >= node.Start && p.End <= node.End {
+			return nil
+		}
+	}
+	return fmt.Errorf("range is not inside a text node")
+}
+
+func (d *Document) applyOrderedPatches(ordered []Patch) []byte {
 	var out bytes.Buffer
 	at := 0
 	for _, p := range ordered {
@@ -260,31 +280,41 @@ func (d *Document) Apply(patches []Patch) ([]byte, error) {
 		at = p.End
 	}
 	out.Write(d.raw[at:])
-	if len(ordered) > 0 {
-		parsed, err := ParseDocument(out.Bytes())
-		if err != nil {
-			return nil, fmt.Errorf("patches change WebVTT structure: %w", err)
-		}
-		if len(parsed.Blocks) != len(d.blocks) {
-			return nil, fmt.Errorf("patches change block count")
-		}
-		if len(parsed.entities) != len(d.entities) {
-			return nil, fmt.Errorf("patches introduce character references")
-		}
-		for i, original := range d.blocks {
-			block := parsed.Blocks[i].Block
-			if cue, ok := original.Block.(Cue); ok {
-				other, ok := block.(Cue)
-				if !ok || cue.ID != other.ID || cue.StartTime != other.StartTime ||
-					cue.EndTime != other.EndTime || cue.Settings != other.Settings {
-					return nil, fmt.Errorf("patches change cue structure")
-				}
-			} else if !reflect.DeepEqual(original.Block, block) {
-				return nil, fmt.Errorf("patches change non-cue block")
-			}
+	return out.Bytes()
+}
+
+func (d *Document) validatePatchedStructure(raw []byte) error {
+	parsed, err := ParseDocument(raw)
+	if err != nil {
+		return fmt.Errorf("patches change WebVTT structure: %w", err)
+	}
+	if len(parsed.Blocks) != len(d.blocks) {
+		return fmt.Errorf("patches change block count")
+	}
+	if len(parsed.entities) != len(d.entities) {
+		return fmt.Errorf("patches introduce character references")
+	}
+	for i, original := range d.blocks {
+		if err := validateBlockStructure(original.Block, parsed.Blocks[i].Block); err != nil {
+			return err
 		}
 	}
-	return out.Bytes(), nil
+	return nil
+}
+
+func validateBlockStructure(original, patched Block) error {
+	if cue, ok := original.(Cue); ok {
+		other, ok := patched.(Cue)
+		if !ok || cue.ID != other.ID || cue.StartTime != other.StartTime ||
+			cue.EndTime != other.EndTime || cue.Settings != other.Settings {
+			return fmt.Errorf("patches change cue structure")
+		}
+		return nil
+	}
+	if !reflect.DeepEqual(original, patched) {
+		return fmt.Errorf("patches change non-cue block")
+	}
+	return nil
 }
 
 // CueText returns the visible text of each cue after patches, including
